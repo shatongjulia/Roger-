@@ -9,6 +9,8 @@ export const GameCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const starsRef = useRef<{ x: number; y: number; size: number; opacity: number }[]>([]);
+  const dustRef = useRef<{ x: number; y: number; r: number }[]>([]);
   const [gameState, setGameState] = useState<{
     score: number;
     status: GameStatus;
@@ -26,6 +28,34 @@ export const GameCanvas: React.FC = () => {
     const height = containerRef.current.clientHeight;
     
     engineRef.current = new GameEngine(width, height);
+    
+    const initBackground = (w: number, h: number) => {
+      // Initialize stars
+      const stars = [];
+      for (let i = 0; i < 150; i++) {
+        stars.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 1.5,
+          opacity: Math.random()
+        });
+      }
+      starsRef.current = stars;
+
+      // Initialize Milky Way dust
+      const dust = [];
+      for (let i = 0; i < 30; i++) {
+        dust.push({
+          x: (Math.random() - 0.5) * w * 2,
+          y: (Math.random() - 0.5) * h * 0.4,
+          r: Math.random() * 60 + 30
+        });
+      }
+      dustRef.current = dust;
+    };
+
+    initBackground(width, height);
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -37,13 +67,102 @@ export const GameCanvas: React.FC = () => {
 
       engineRef.current.update(time);
       
-      // Clear
-      ctx.fillStyle = '#0a0a0a';
+      // Clear with Space Gradient
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGradient.addColorStop(0, '#020617'); // Deep space blue
+      bgGradient.addColorStop(1, '#0f172a'); // Slightly lighter near ground
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Draw Nebula Effects
+      ctx.globalCompositeOperation = 'screen';
+      const nebula1 = ctx.createRadialGradient(canvas.width * 0.2, canvas.height * 0.3, 0, canvas.width * 0.2, canvas.height * 0.3, canvas.width * 0.4);
+      nebula1.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+      nebula1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = nebula1;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const nebula2 = ctx.createRadialGradient(canvas.width * 0.8, canvas.height * 0.6, 0, canvas.width * 0.8, canvas.height * 0.6, canvas.width * 0.3);
+      nebula2.addColorStop(0, 'rgba(139, 92, 246, 0.05)');
+      nebula2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = nebula2;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Milky Way Band
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-Math.PI / 4);
+      const milkyWay = ctx.createLinearGradient(-canvas.width, 0, canvas.width, 0);
+      milkyWay.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      milkyWay.addColorStop(0.3, 'rgba(255, 255, 255, 0.02)');
+      milkyWay.addColorStop(0.45, 'rgba(255, 255, 255, 0.12)');
+      milkyWay.addColorStop(0.5, 'rgba(255, 255, 255, 0.18)');
+      milkyWay.addColorStop(0.55, 'rgba(255, 255, 255, 0.12)');
+      milkyWay.addColorStop(0.7, 'rgba(255, 255, 255, 0.02)');
+      milkyWay.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = milkyWay;
+      ctx.fillRect(-canvas.width, -canvas.height * 0.25, canvas.width * 2, canvas.height * 0.5);
+      
+      // Add "dust" to Milky Way
+      ctx.globalCompositeOperation = 'overlay';
+      dustRef.current.forEach(d => {
+        const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+        g.addColorStop(0, 'rgba(0, 0, 0, 0.4)');
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Draw Stars
+      ctx.fillStyle = '#fff';
+      starsRef.current.forEach(star => {
+        ctx.globalAlpha = star.opacity * (0.5 + 0.5 * Math.sin(time / 1000 + star.x));
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0;
+
+      // Draw Moon
+      const moonX = canvas.width * 0.85;
+      const moonY = canvas.height * 0.15;
+      const moonRadius = 30;
+      
+      // Moon Glow
+      const moonGlow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonRadius * 2);
+      moonGlow.addColorStop(0, 'rgba(255, 255, 230, 0.2)');
+      moonGlow.addColorStop(1, 'rgba(255, 255, 230, 0)');
+      ctx.fillStyle = moonGlow;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, moonRadius * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Moon Body (Crescent)
+      ctx.fillStyle = '#fefce8';
+      ctx.beginPath();
+      // Outer arc
+      ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner arc (shadow) - using background color to "cut"
+      ctx.fillStyle = '#020617'; // Match top of gradient
+      ctx.beginPath();
+      ctx.arc(moonX - 12, moonY - 8, moonRadius, 0, Math.PI * 2);
+      ctx.fill();
+
       // Draw Ground
-      ctx.fillStyle = '#1a1a1a';
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+      ctx.strokeStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height - 20);
+      ctx.lineTo(canvas.width, canvas.height - 20);
+      ctx.stroke();
 
       // Draw Cities
       engineRef.current.cities.forEach(city => {
@@ -60,6 +179,15 @@ export const GameCanvas: React.FC = () => {
       // Draw Batteries
       engineRef.current.batteries.forEach((battery, idx) => {
         if (!battery.isDestroyed) {
+          // Battery Base Glow
+          const baseGlow = ctx.createRadialGradient(battery.x, battery.y - 10, 0, battery.x, battery.y - 10, 25);
+          baseGlow.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+          baseGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+          ctx.fillStyle = baseGlow;
+          ctx.beginPath();
+          ctx.arc(battery.x, battery.y - 10, 25, 0, Math.PI * 2);
+          ctx.fill();
+
           ctx.fillStyle = '#10b981';
           ctx.beginPath();
           ctx.moveTo(battery.x - 15, battery.y);
@@ -67,6 +195,14 @@ export const GameCanvas: React.FC = () => {
           ctx.lineTo(battery.x, battery.y - 20);
           ctx.closePath();
           ctx.fill();
+
+          // Cannon detail
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(battery.x, battery.y - 10);
+          ctx.lineTo(battery.x, battery.y - 25);
+          ctx.stroke();
           
           // Ammo bar
           const barWidth = 30;
@@ -87,49 +223,104 @@ export const GameCanvas: React.FC = () => {
       });
 
       // Draw Rockets
-      ctx.lineWidth = 1;
       engineRef.current.rockets.forEach(r => {
-        ctx.strokeStyle = '#ef4444';
+        // Calculate direction for trail
+        const dx = r.target.x - r.x;
+        const dy = r.target.y - r.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ux = dx / dist;
+        const uy = dy / dist;
+
+        // Draw Glow Trail
+        const trailLength = 40;
+        const trailGradient = ctx.createLinearGradient(r.x, r.y, r.x - ux * trailLength, r.y - uy * trailLength);
+        trailGradient.addColorStop(0, 'rgba(239, 68, 68, 0.8)'); // Red
+        trailGradient.addColorStop(0.5, 'rgba(249, 115, 22, 0.4)'); // Orange
+        trailGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+        
+        ctx.strokeStyle = trailGradient;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(r.x, r.y);
-        ctx.lineTo(r.x - (r.target.x - r.x) * 0.1, r.y - (r.target.y - r.y) * 0.1);
+        ctx.lineTo(r.x - ux * trailLength, r.y - uy * trailLength);
         ctx.stroke();
+
+        // Draw Rocket Head Glow
+        const headGlow = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, 6);
+        headGlow.addColorStop(0, '#fff');
+        headGlow.addColorStop(0.3, '#ef4444');
+        headGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
         
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = headGlow;
         ctx.beginPath();
-        ctx.arc(r.x, r.y, 2, 0, Math.PI * 2);
+        ctx.arc(r.x, r.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 1.5, 0, Math.PI * 2);
         ctx.fill();
       });
 
       // Draw Interceptors
       engineRef.current.interceptors.forEach(i => {
-        ctx.strokeStyle = '#fff';
+        // Trail Glow
+        const trailGradient = ctx.createLinearGradient(i.start.x, i.start.y, i.x, i.y);
+        trailGradient.addColorStop(0, 'rgba(6, 182, 212, 0)');
+        trailGradient.addColorStop(1, 'rgba(6, 182, 212, 0.5)');
+        
+        ctx.strokeStyle = trailGradient;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(i.start.x, i.start.y);
         ctx.lineTo(i.x, i.y);
         ctx.stroke();
+
+        // Head Glow
+        const headGlow = ctx.createRadialGradient(i.x, i.y, 0, i.x, i.y, 8);
+        headGlow.addColorStop(0, '#fff');
+        headGlow.addColorStop(0.4, '#06b6d4');
+        headGlow.addColorStop(1, 'rgba(6, 182, 212, 0)');
+        ctx.fillStyle = headGlow;
+        ctx.beginPath();
+        ctx.arc(i.x, i.y, 8, 0, Math.PI * 2);
+        ctx.fill();
         
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(i.x, i.y, 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Target marker X
-        ctx.strokeStyle = '#fff';
+        // Target marker: Pulsing Crosshair
+        const pulse = Math.sin(time / 200) * 2 + 5;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(time / 200) * 0.3})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(i.target.x - 3, i.target.y - 3);
-        ctx.lineTo(i.target.x + 3, i.target.y + 3);
-        ctx.moveTo(i.target.x + 3, i.target.y - 3);
-        ctx.lineTo(i.target.x - 3, i.target.y + 3);
+        // Circle
+        ctx.arc(i.target.x, i.target.y, pulse, 0, Math.PI * 2);
+        // Cross
+        ctx.moveTo(i.target.x - pulse - 2, i.target.y);
+        ctx.lineTo(i.target.x + pulse + 2, i.target.y);
+        ctx.moveTo(i.target.x, i.target.y - pulse - 2);
+        ctx.lineTo(i.target.x, i.target.y + pulse + 2);
         ctx.stroke();
       });
 
       // Draw Explosions
       engineRef.current.explosions.forEach(e => {
+        // Outer Shockwave
+        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - e.elapsed / e.duration})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+
         const gradient = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.radius);
         gradient.addColorStop(0, '#fff');
-        gradient.addColorStop(0.4, '#fbbf24');
-        gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+        gradient.addColorStop(0.2, '#67e8f9'); // Cyan core
+        gradient.addColorStop(0.5, '#fbbf24'); // Yellow
+        gradient.addColorStop(1, 'rgba(239, 68, 68, 0)'); // Red fade
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -158,6 +349,7 @@ export const GameCanvas: React.FC = () => {
       canvasRef.current.width = w;
       canvasRef.current.height = h;
       engineRef.current.resize(w, h);
+      initBackground(w, h);
     };
 
     window.addEventListener('resize', handleResize);
@@ -209,7 +401,7 @@ export const GameCanvas: React.FC = () => {
       <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
         <div className="bg-black/50 backdrop-blur-md border border-white/10 p-4 rounded-xl">
           <div className="text-xs uppercase tracking-widest text-white/50 mb-1">Score / 得分</div>
-          <div className="text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-sm text-white/30">/ 200</span></div>
+          <div className="text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-sm text-white/30">/ 500</span></div>
         </div>
 
         <div className="flex gap-2">

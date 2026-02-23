@@ -195,7 +195,7 @@ export class GameEngine {
         if (dist < e.radius) {
           r.isDestroyed = true;
           this.score += 20;
-          if (this.score >= 200) {
+          if (this.score >= 500) {
             this.status = 'WON';
           }
         }
