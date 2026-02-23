@@ -1,0 +1,5 @@
+{
+  "name": "Roger Nova Defense",
+  "description": "A high-performance Missile Command style tower defense game built with React and Canvas.",
+  "requestFramePermissions": []
+}
