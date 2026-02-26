@@ -2,7 +2,7 @@
 import { Point, Rocket, Interceptor, Explosion, City, Battery, GameStatus } from './types';
 
 const ROCKET_SPEED_MIN = 0.0002;
-const ROCKET_SPEED_MAX = 0.0006;
+const ROCKET_SPEED_MAX = 0.0008;
 const INTERCEPTOR_SPEED = 0.015;
 const EXPLOSION_MAX_RADIUS = 40;
 const EXPLOSION_DURATION = 1000; // ms
@@ -27,7 +27,7 @@ export class GameEngine {
 
   init() {
     this.score = 0;
-    this.status = 'PLAYING';
+    this.status = 'START';
     this.rockets = [];
     this.interceptors = [];
     this.explosions = [];
@@ -131,7 +131,7 @@ export class GameEngine {
     this.lastTime = time;
 
     // Spawn rockets periodically
-    if (Math.random() < 0.01 + (this.score / 2000)) {
+    if (Math.random() < 0.01 + (this.score / 2500)) {
       this.spawnRocket();
     }
 
@@ -195,7 +195,7 @@ export class GameEngine {
         if (dist < e.radius) {
           r.isDestroyed = true;
           this.score += 20;
-          if (this.score >= 500) {
+          if (this.score >= 1000) {
             this.status = 'WON';
           }
         }

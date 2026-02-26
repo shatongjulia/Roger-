@@ -384,8 +384,15 @@ export const GameCanvas: React.FC = () => {
   };
 
   const startGame = () => {
-    engineRef.current?.init();
-    setGameState(prev => ({ ...prev, status: 'PLAYING' }));
+    if (engineRef.current) {
+      engineRef.current.init();
+      engineRef.current.status = 'PLAYING';
+      setGameState({
+        score: 0,
+        status: 'PLAYING',
+        ammo: engineRef.current.getAmmo()
+      });
+    }
   };
 
   return (
@@ -401,7 +408,7 @@ export const GameCanvas: React.FC = () => {
       <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
         <div className="bg-black/50 backdrop-blur-md border border-white/10 p-4 rounded-xl">
           <div className="text-xs uppercase tracking-widest text-white/50 mb-1">Score / 得分</div>
-          <div className="text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-sm text-white/30">/ 500</span></div>
+          <div className="text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-sm text-white/30">/ 1000</span></div>
         </div>
 
         <div className="flex gap-2">
@@ -427,31 +434,64 @@ export const GameCanvas: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center"
+            className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center"
           >
-            <motion.h1 
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tighter uppercase italic"
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mb-12"
             >
-              Roger <span className="text-blue-500">Nova</span> Defense
-              <br />
-              <span className="text-2xl md:text-3xl font-normal text-white/50">Roger新星防御</span>
-            </motion.h1>
-            <p className="text-white/60 max-w-md mb-8 leading-relaxed">
-              Protect your cities from falling rockets. Click to intercept.
-              <br />
-              保护你的城市免受火箭袭击。点击发射拦截导弹。
-            </p>
-            <button
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-2 tracking-tighter uppercase italic">
+                Roger <span className="text-blue-500">Nova</span> Defense
+              </h1>
+              <h2 className="text-2xl md:text-3xl font-normal text-white/40">Roger新星防御</h2>
+            </motion.div>
+
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mb-12"
+            >
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 01 / 规则一</div>
+                <p className="text-white/70 text-sm leading-relaxed">
+                  Protect 6 cities and 3 batteries from falling rockets.
+                  <br />
+                  保护6座城市和3个炮台免受火箭袭击。
+                </p>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 02 / 规则二</div>
+                <p className="text-white/70 text-sm leading-relaxed">
+                  Click to fire interceptors. Predict the trajectory.
+                  <br />
+                  点击发射拦截导弹。预判火箭飞行轨迹。
+                </p>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 03 / 规则三</div>
+                <p className="text-white/70 text-sm leading-relaxed">
+                  Score 500 points to win. Ammo is limited!
+                  <br />
+                  达到500分即可获胜。弹药有限！
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.button
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
               onClick={startGame}
-              className="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95"
+              className="group relative px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
             >
-              <div className="relative z-10 flex items-center gap-2">
-                <Play className="w-5 h-5 fill-current" />
+              <div className="relative z-10 flex items-center gap-3 text-xl tracking-tight">
+                <Play className="w-6 h-6 fill-current" />
                 START MISSION / 开始任务
               </div>
-            </button>
+            </motion.button>
           </motion.div>
         )}
 
