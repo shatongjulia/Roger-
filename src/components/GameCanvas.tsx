@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { GameEngine } from '../GameEngine';
 import { GameStatus } from '../types';
-import { Trophy, RotateCcw, Play, AlertTriangle } from 'lucide-react';
+import { Trophy, RotateCcw, Play, AlertTriangle, HelpCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const GameCanvas: React.FC = () => {
@@ -11,6 +11,7 @@ export const GameCanvas: React.FC = () => {
   const engineRef = useRef<GameEngine | null>(null);
   const starsRef = useRef<{ x: number; y: number; size: number; opacity: number }[]>([]);
   const dustRef = useRef<{ x: number; y: number; r: number }[]>([]);
+  const [showRules, setShowRules] = useState(false);
   const [gameState, setGameState] = useState<{
     score: number;
     status: GameStatus;
@@ -405,21 +406,21 @@ export const GameCanvas: React.FC = () => {
       />
 
       {/* HUD */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 p-4 rounded-xl">
-          <div className="text-xs uppercase tracking-widest text-white/50 mb-1">Score / 得分</div>
-          <div className="text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-sm text-white/30">/ 1000</span></div>
+      <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex justify-between items-start pointer-events-none">
+        <div className="bg-black/50 backdrop-blur-md border border-white/10 p-2 md:p-4 rounded-lg md:rounded-xl">
+          <div className="text-[10px] md:text-xs uppercase tracking-widest text-white/50 mb-0.5 md:mb-1">Score / 得分</div>
+          <div className="text-xl md:text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-xs md:text-sm text-white/30">/ 1000</span></div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2">
           {[
             { label: 'L', val: gameState.ammo.left },
             { label: 'M', val: gameState.ammo.mid },
             { label: 'R', val: gameState.ammo.right }
           ].map((b, i) => (
-            <div key={i} className="bg-black/50 backdrop-blur-md border border-white/10 p-2 rounded-lg text-center min-w-[60px]">
-              <div className="text-[10px] text-white/40">{b.label}</div>
-              <div className={`text-sm font-mono font-bold ${b.val < 20 ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
+            <div key={i} className="bg-black/50 backdrop-blur-md border border-white/10 p-1.5 md:p-2 rounded-lg text-center min-w-[45px] md:min-w-[60px]">
+              <div className="text-[8px] md:text-[10px] text-white/40">{b.label}</div>
+              <div className={`text-xs md:text-sm font-mono font-bold ${b.val < 20 ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
                 {b.val}
               </div>
             </div>
@@ -442,56 +443,92 @@ export const GameCanvas: React.FC = () => {
               transition={{ delay: 0.2 }}
               className="mb-12"
             >
-              <h1 className="text-5xl md:text-7xl font-black text-white mb-2 tracking-tighter uppercase italic">
+              <h1 className="text-4xl md:text-7xl font-black text-white mb-2 tracking-tighter uppercase italic">
                 Roger <span className="text-blue-500">Nova</span> Defense
               </h1>
-              <h2 className="text-2xl md:text-3xl font-normal text-white/40">Roger新星防御</h2>
+              <h2 className="text-xl md:text-3xl font-normal text-white/40">Roger新星防御</h2>
             </motion.div>
 
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mb-12"
-            >
-              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 01 / 规则一</div>
-                <p className="text-white/70 text-sm leading-relaxed">
-                  Protect 6 cities and 3 batteries from falling rockets.
-                  <br />
-                  保护6座城市和3个炮台免受火箭袭击。
-                </p>
-              </div>
-              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 02 / 规则二</div>
-                <p className="text-white/70 text-sm leading-relaxed">
-                  Click to fire interceptors. Predict the trajectory.
-                  <br />
-                  点击发射拦截导弹。预判火箭飞行轨迹。
-                </p>
-              </div>
-              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 03 / 规则三</div>
-                <p className="text-white/70 text-sm leading-relaxed">
-                  Score 500 points to win. Ammo is limited!
-                  <br />
-                  达到500分即可获胜。弹药有限！
-                </p>
-              </div>
-            </motion.div>
+            <div className="flex flex-col md:flex-row gap-4">
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                onClick={() => setShowRules(true)}
+                className="group relative px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-full flex items-center justify-center gap-2 transition-all border border-white/10"
+              >
+                <HelpCircle className="w-5 h-5" />
+                RULES / 规则
+              </motion.button>
 
-            <motion.button
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              onClick={startGame}
-              className="group relative px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
-            >
-              <div className="relative z-10 flex items-center gap-3 text-xl tracking-tight">
-                <Play className="w-6 h-6 fill-current" />
-                START MISSION / 开始任务
-              </div>
-            </motion.button>
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                onClick={startGame}
+                className="group relative px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
+              >
+                <div className="relative z-10 flex items-center gap-3 text-xl tracking-tight">
+                  <Play className="w-6 h-6 fill-current" />
+                  START MISSION / 开始任务
+                </div>
+              </motion.button>
+            </div>
+
+            {/* Rules Modal */}
+            <AnimatePresence>
+              {showRules && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 md:p-8"
+                >
+                  <button 
+                    onClick={() => setShowRules(false)}
+                    className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors"
+                  >
+                    <X className="w-8 h-8" />
+                  </button>
+
+                  <h3 className="text-3xl font-black text-white mb-8 uppercase italic">Game Rules / 游戏规则</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl w-full">
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                      <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 01 / 规则一</div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Protect 6 cities and 3 batteries from falling rockets.
+                        <br />
+                        保护6座城市和3个炮台免受火箭袭击。
+                      </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                      <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 02 / 规则二</div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Click to fire interceptors. Predict the trajectory.
+                        <br />
+                        点击发射拦截导弹。预判火箭飞行轨迹。
+                      </p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                      <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 03 / 规则三</div>
+                      <p className="text-white/70 text-sm leading-relaxed">
+                        Score 1000 points to win. Ammo is limited!
+                        <br />
+                        达到1000分即可获胜。弹药有限！
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowRules(false)}
+                    className="mt-12 px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors"
+                  >
+                    UNDERSTOOD / 明白了
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
 
