@@ -45,6 +45,8 @@ export interface Battery extends Point {
 
 export type GameStatus = 'START' | 'PLAYING' | 'WON' | 'LOST';
 
+export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+
 export interface GameState {
   score: number;
   status: GameStatus;

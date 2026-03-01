@@ -1,8 +1,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { GameEngine } from '../GameEngine';
-import { GameStatus } from '../types';
-import { Trophy, RotateCcw, Play, AlertTriangle, HelpCircle, X } from 'lucide-react';
+import { Point, Rocket, Interceptor, Explosion, City, Battery, GameStatus, Difficulty } from '../types';
+import { Trophy, RotateCcw, Play, AlertTriangle, HelpCircle, X, Shield, Target, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const GameCanvas: React.FC = () => {
@@ -12,6 +12,7 @@ export const GameCanvas: React.FC = () => {
   const starsRef = useRef<{ x: number; y: number; size: number; opacity: number }[]>([]);
   const dustRef = useRef<{ x: number; y: number; r: number }[]>([]);
   const [showRules, setShowRules] = useState(false);
+  const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
   const [gameState, setGameState] = useState<{
     score: number;
     status: GameStatus;
@@ -69,13 +70,18 @@ export const GameCanvas: React.FC = () => {
       engineRef.current.update(time);
       
       // Clear with Space Gradient
-      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGradient.addColorStop(0, '#020617'); // Deep space blue
-      bgGradient.addColorStop(1, '#0f172a'); // Slightly lighter near ground
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw Stars (Dynamic layer on top of background image)
+      ctx.globalCompositeOperation = 'source-over';
+      starsRef.current.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity * (0.5 + Math.sin(time * 0.001) * 0.2)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
-      // Draw Nebula Effects
+      // Draw Nebula Effects (Subtle overlay)
       ctx.globalCompositeOperation = 'screen';
       const nebula1 = ctx.createRadialGradient(canvas.width * 0.2, canvas.height * 0.3, 0, canvas.width * 0.2, canvas.height * 0.3, canvas.width * 0.4);
       nebula1.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
@@ -384,9 +390,9 @@ export const GameCanvas: React.FC = () => {
     engineRef.current.fireInterceptor(x, y);
   };
 
-  const startGame = () => {
+  const startGame = (diff: Difficulty = difficulty) => {
     if (engineRef.current) {
-      engineRef.current.init();
+      engineRef.current.init(diff);
       engineRef.current.status = 'PLAYING';
       setGameState({
         score: 0,
@@ -396,8 +402,19 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const winningScore = difficulty === 'EASY' ? 500 : difficulty === 'MEDIUM' ? 1000 : 2000;
+
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-black overflow-hidden cursor-crosshair touch-none">
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full bg-black overflow-hidden cursor-crosshair touch-none"
+      style={{
+        backgroundImage: 'url("https://images.unsplash.com/photo-1464802686167-b939a67e06a1?auto=format&fit=crop&w=1920&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <canvas
         ref={canvasRef}
         onMouseDown={handleClick}
@@ -409,7 +426,7 @@ export const GameCanvas: React.FC = () => {
       <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex justify-between items-start pointer-events-none">
         <div className="bg-black/50 backdrop-blur-md border border-white/10 p-2 md:p-4 rounded-lg md:rounded-xl">
           <div className="text-[10px] md:text-xs uppercase tracking-widest text-white/50 mb-0.5 md:mb-1">Score / 得分</div>
-          <div className="text-xl md:text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-xs md:text-sm text-white/30">/ 1000</span></div>
+          <div className="text-xl md:text-3xl font-mono font-bold text-white">{gameState.score} <span className="text-xs md:text-sm text-white/30">/ {winningScore}</span></div>
         </div>
 
         <div className="flex gap-1 md:gap-2">
@@ -449,30 +466,59 @@ export const GameCanvas: React.FC = () => {
               <h2 className="text-xl md:text-3xl font-normal text-white/40">Roger新星防御</h2>
             </motion.div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-              <motion.button
+            <div className="flex flex-col items-center gap-8">
+              {/* Difficulty Selection */}
+              <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                onClick={() => setShowRules(true)}
-                className="group relative px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-full flex items-center justify-center gap-2 transition-all border border-white/10"
+                className="flex gap-4 p-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl"
               >
-                <HelpCircle className="w-5 h-5" />
-                RULES / 规则
-              </motion.button>
+                {[
+                  { id: 'EASY', label: 'EASY / 简单', icon: Shield, color: 'text-emerald-400', bg: 'hover:bg-emerald-500/10' },
+                  { id: 'MEDIUM', label: 'MEDIUM / 中等', icon: Target, color: 'text-blue-400', bg: 'hover:bg-blue-500/10' },
+                  { id: 'HARD', label: 'HARD / 困难', icon: Zap, color: 'text-red-400', bg: 'hover:bg-red-500/10' }
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setDifficulty(d.id as Difficulty)}
+                    className={`px-6 py-3 rounded-xl transition-all flex flex-col items-center gap-1 min-w-[120px] ${
+                      difficulty === d.id 
+                        ? 'bg-white/10 border border-white/20 shadow-lg' 
+                        : `opacity-40 grayscale hover:opacity-100 hover:grayscale-0 ${d.bg}`
+                    }`}
+                  >
+                    <d.icon className={`w-5 h-5 ${d.color}`} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white">{d.label}</span>
+                  </button>
+                ))}
+              </motion.div>
 
-              <motion.button
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                onClick={startGame}
-                className="group relative px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
-              >
-                <div className="relative z-10 flex items-center gap-3 text-xl tracking-tight">
-                  <Play className="w-6 h-6 fill-current" />
-                  START MISSION / 开始任务
-                </div>
-              </motion.button>
+              <div className="flex flex-col md:flex-row gap-4">
+                <motion.button
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  onClick={() => setShowRules(true)}
+                  className="group relative px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-full flex items-center justify-center gap-2 transition-all border border-white/10"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  RULES / 规则
+                </motion.button>
+
+                <motion.button
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  onClick={() => startGame()}
+                  className="group relative px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/20"
+                >
+                  <div className="relative z-10 flex items-center gap-3 text-xl tracking-tight">
+                    <Play className="w-6 h-6 fill-current" />
+                    START MISSION / 开始任务
+                  </div>
+                </motion.button>
+              </div>
             </div>
 
             {/* Rules Modal */}
@@ -513,9 +559,9 @@ export const GameCanvas: React.FC = () => {
                     <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
                       <div className="text-blue-400 font-bold mb-2 uppercase text-sm tracking-widest">Rule 03 / 规则三</div>
                       <p className="text-white/70 text-sm leading-relaxed">
-                        Score 1000 points to win. Ammo is limited!
+                        Score {winningScore} points to win. Ammo is limited!
                         <br />
-                        达到1000分即可获胜。弹药有限！
+                        达到{winningScore}分即可获胜。弹药有限！
                       </p>
                     </div>
                   </div>

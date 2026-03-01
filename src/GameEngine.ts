@@ -1,8 +1,6 @@
 
-import { Point, Rocket, Interceptor, Explosion, City, Battery, GameStatus } from './types';
+import { Point, Rocket, Interceptor, Explosion, City, Battery, GameStatus, Difficulty } from './types';
 
-const ROCKET_SPEED_MIN = 0.0002;
-const ROCKET_SPEED_MAX = 0.0008;
 const INTERCEPTOR_SPEED = 0.015;
 const EXPLOSION_MAX_RADIUS = 40;
 const EXPLOSION_DURATION = 1000; // ms
@@ -10,6 +8,13 @@ const EXPLOSION_DURATION = 1000; // ms
 export class GameEngine {
   score = 0;
   status: GameStatus = 'START';
+  difficulty: Difficulty = 'MEDIUM';
+  winningScore = 1000;
+  rocketSpeedMin = 0.0002;
+  rocketSpeedMax = 0.0008;
+  spawnRateBase = 0.01;
+  spawnRateFactor = 2500;
+  
   rockets: Rocket[] = [];
   interceptors: Interceptor[] = [];
   explosions: Explosion[] = [];
@@ -25,12 +30,38 @@ export class GameEngine {
     this.init();
   }
 
-  init() {
+  init(difficulty: Difficulty = 'MEDIUM') {
     this.score = 0;
     this.status = 'START';
+    this.difficulty = difficulty;
     this.rockets = [];
     this.interceptors = [];
     this.explosions = [];
+    
+    // Set difficulty parameters
+    switch (difficulty) {
+      case 'EASY':
+        this.winningScore = 500;
+        this.rocketSpeedMin = 0.0001;
+        this.rocketSpeedMax = 0.0005;
+        this.spawnRateBase = 0.005;
+        this.spawnRateFactor = 3000;
+        break;
+      case 'MEDIUM':
+        this.winningScore = 1000;
+        this.rocketSpeedMin = 0.0002;
+        this.rocketSpeedMax = 0.0008;
+        this.spawnRateBase = 0.01;
+        this.spawnRateFactor = 2500;
+        break;
+      case 'HARD':
+        this.winningScore = 2000;
+        this.rocketSpeedMin = 0.0004;
+        this.rocketSpeedMax = 0.0012;
+        this.spawnRateBase = 0.02;
+        this.spawnRateFactor = 2000;
+        break;
+    }
     
     // Initialize cities
     const cityY = this.height - 30;
@@ -87,7 +118,7 @@ export class GameEngine {
       x: startX,
       y: 0,
       target: { x: target.x, y: target.y },
-      speed: ROCKET_SPEED_MIN + Math.random() * (ROCKET_SPEED_MAX - ROCKET_SPEED_MIN),
+      speed: this.rocketSpeedMin + Math.random() * (this.rocketSpeedMax - this.rocketSpeedMin),
       progress: 0,
       isDestroyed: false
     });
@@ -131,7 +162,7 @@ export class GameEngine {
     this.lastTime = time;
 
     // Spawn rockets periodically
-    if (Math.random() < 0.01 + (this.score / 2500)) {
+    if (Math.random() < this.spawnRateBase + (this.score / this.spawnRateFactor)) {
       this.spawnRocket();
     }
 
@@ -195,7 +226,7 @@ export class GameEngine {
         if (dist < e.radius) {
           r.isDestroyed = true;
           this.score += 20;
-          if (this.score >= 1000) {
+          if (this.score >= this.winningScore) {
             this.status = 'WON';
           }
         }
@@ -220,5 +251,13 @@ export class GameEngine {
       const dist = Math.sqrt(Math.pow(b.x - point.x, 2) + Math.pow(b.y - point.y, 2));
       if (dist < 20) b.isDestroyed = true;
     });
+  }
+
+  getAmmo() {
+    return {
+      left: this.batteries[0]?.ammo || 0,
+      mid: this.batteries[1]?.ammo || 0,
+      right: this.batteries[2]?.ammo || 0
+    };
   }
 }
