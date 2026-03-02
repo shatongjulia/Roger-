@@ -163,9 +163,15 @@ export const GameCanvas: React.FC = () => {
       ctx.fill();
 
       // Draw Ground
-      ctx.fillStyle = '#0f172a';
+      const groundGradient = ctx.createLinearGradient(0, canvas.height - 20, 0, canvas.height);
+      groundGradient.addColorStop(0, '#1e293b');
+      groundGradient.addColorStop(1, '#020617');
+      ctx.fillStyle = groundGradient;
       ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
-      ctx.strokeStyle = '#1e293b';
+      
+      // Ground Grid Line
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, canvas.height - 20);
       ctx.lineTo(canvas.width, canvas.height - 20);
@@ -174,12 +180,55 @@ export const GameCanvas: React.FC = () => {
       // Draw Cities
       engineRef.current.cities.forEach(city => {
         if (!city.isDestroyed) {
-          ctx.fillStyle = '#3b82f6';
-          ctx.fillRect(city.x - 10, city.y - 10, 20, 10);
-          ctx.fillRect(city.x - 5, city.y - 15, 10, 5);
+          // City Glow
+          const cityGlow = ctx.createRadialGradient(city.x, city.y - 15, 0, city.x, city.y - 15, 30);
+          cityGlow.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+          cityGlow.addColorStop(1, 'rgba(59, 130, 246, 0)');
+          ctx.fillStyle = cityGlow;
+          ctx.beginPath();
+          ctx.arc(city.x, city.y - 15, 30, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Main Building
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(city.x - 12, city.y - 25, 24, 25);
+          
+          // Neon Windows
+          ctx.fillStyle = '#60a5fa';
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 2; col++) {
+              if (Math.random() > 0.3) {
+                ctx.fillRect(city.x - 8 + col * 10, city.y - 22 + row * 5, 4, 3);
+              }
+            }
+          }
+
+          // Side Buildings
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(city.x - 18, city.y - 15, 8, 15);
+          ctx.fillRect(city.x + 10, city.y - 18, 8, 18);
+
+          // Antenna
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(city.x, city.y - 25);
+          ctx.lineTo(city.x, city.y - 35);
+          ctx.stroke();
+          
+          // Antenna Tip Blink
+          if (Math.sin(time * 0.005) > 0) {
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(city.x, city.y - 35, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
         } else {
+          // Ruined City
+          ctx.fillStyle = '#1a0505';
+          ctx.fillRect(city.x - 15, city.y - 5, 30, 5);
           ctx.fillStyle = '#450a0a';
-          ctx.fillRect(city.x - 10, city.y - 5, 20, 5);
+          ctx.fillRect(city.x - 8, city.y - 8, 10, 3);
         }
       });
 
@@ -187,45 +236,78 @@ export const GameCanvas: React.FC = () => {
       engineRef.current.batteries.forEach((battery, idx) => {
         if (!battery.isDestroyed) {
           // Battery Base Glow
-          const baseGlow = ctx.createRadialGradient(battery.x, battery.y - 10, 0, battery.x, battery.y - 10, 25);
-          baseGlow.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+          const baseGlow = ctx.createRadialGradient(battery.x, battery.y - 10, 0, battery.x, battery.y - 10, 35);
+          baseGlow.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
           baseGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
           ctx.fillStyle = baseGlow;
           ctx.beginPath();
-          ctx.arc(battery.x, battery.y - 10, 25, 0, Math.PI * 2);
+          ctx.arc(battery.x, battery.y - 10, 35, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = '#10b981';
+          // Mechanical Base
+          ctx.fillStyle = '#334155';
           ctx.beginPath();
-          ctx.moveTo(battery.x - 15, battery.y);
-          ctx.lineTo(battery.x + 15, battery.y);
-          ctx.lineTo(battery.x, battery.y - 20);
-          ctx.closePath();
+          ctx.roundRect(battery.x - 20, battery.y - 8, 40, 8, 2);
           ctx.fill();
 
-          // Cannon detail
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 2;
+          // Turret Body
+          const turretGradient = ctx.createLinearGradient(battery.x - 15, 0, battery.x + 15, 0);
+          turretGradient.addColorStop(0, '#10b981');
+          turretGradient.addColorStop(0.5, '#34d399');
+          turretGradient.addColorStop(1, '#059669');
+          ctx.fillStyle = turretGradient;
           ctx.beginPath();
-          ctx.moveTo(battery.x, battery.y - 10);
-          ctx.lineTo(battery.x, battery.y - 25);
+          ctx.arc(battery.x, battery.y - 12, 15, Math.PI, 0);
+          ctx.fill();
+
+          // Energy Core
+          const corePulse = 0.5 + Math.sin(time * 0.01) * 0.5;
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + corePulse * 0.6})`;
+          ctx.beginPath();
+          ctx.arc(battery.x, battery.y - 12, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Cannon Barrels
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          
+          // Left Barrel
+          ctx.beginPath();
+          ctx.moveTo(battery.x - 6, battery.y - 15);
+          ctx.lineTo(battery.x - 6, battery.y - 30);
+          ctx.stroke();
+          
+          // Right Barrel
+          ctx.beginPath();
+          ctx.moveTo(battery.x + 6, battery.y - 15);
+          ctx.lineTo(battery.x + 6, battery.y - 30);
           ctx.stroke();
           
           // Ammo bar
-          const barWidth = 30;
+          const barWidth = 40;
           const ammoPercent = battery.ammo / battery.maxAmmo;
-          ctx.fillStyle = '#333';
-          ctx.fillRect(battery.x - 15, battery.y + 5, barWidth, 4);
-          ctx.fillStyle = ammoPercent > 0.2 ? '#10b981' : '#ef4444';
-          ctx.fillRect(battery.x - 15, battery.y + 5, barWidth * ammoPercent, 4);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(battery.x - 20, battery.y + 5, barWidth, 4);
+          
+          const ammoGradient = ctx.createLinearGradient(battery.x - 20, 0, battery.x + 20, 0);
+          if (ammoPercent > 0.2) {
+            ammoGradient.addColorStop(0, '#10b981');
+            ammoGradient.addColorStop(1, '#34d399');
+          } else {
+            ammoGradient.addColorStop(0, '#ef4444');
+            ammoGradient.addColorStop(1, '#f87171');
+          }
+          ctx.fillStyle = ammoGradient;
+          ctx.fillRect(battery.x - 20, battery.y + 5, barWidth * ammoPercent, 4);
         } else {
-          ctx.fillStyle = '#450a0a';
+          // Destroyed Battery
+          ctx.fillStyle = '#1a0505';
           ctx.beginPath();
-          ctx.moveTo(battery.x - 15, battery.y);
-          ctx.lineTo(battery.x + 15, battery.y);
-          ctx.lineTo(battery.x, battery.y - 5);
-          ctx.closePath();
+          ctx.roundRect(battery.x - 20, battery.y - 4, 40, 4, 1);
           ctx.fill();
+          ctx.fillStyle = '#450a0a';
+          ctx.fillRect(battery.x - 5, battery.y - 8, 10, 4);
         }
       });
 
